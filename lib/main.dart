@@ -133,7 +133,7 @@ class _RaidHomeState extends State<RaidHome> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _header(isWide, bosses),
+                RepaintBoundary(child: _header(isWide, bosses)),
                 if (searching) ...[
                   const SizedBox(height: 12),
                   _searchAssignments(bosses, fullScreen: true),

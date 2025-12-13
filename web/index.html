@@ -9,6 +9,13 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#121212">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' ry='12' fill='%232b2f3b'/%3E%3Ctext x='50%' y='52%' text-anchor='middle' font-size='26' font-family='Arial Black, sans-serif' fill='%23ffffff'%3ESoM%3C/text%3E%3C/svg%3E">
+  <style>
+    /* Safari/mobile artifacts mitigation */
+    html, body { height: 100%; background: #0e1016; }
+    * { -webkit-tap-highlight-color: transparent; }
+    body { overscroll-behavior: none; margin: 0; padding: 0; }
+    canvas { outline: none; }
+  </style>
 </head>
 <body>
   <script src="flutter.js" defer></script>
