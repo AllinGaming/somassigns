@@ -31,9 +31,34 @@ class RaidApp extends StatelessWidget {
         cardColor: const Color(0xFF161A23),
       ),
       home: const RaidHome(),
+      scrollBehavior: const NoGlowBehavior(),
+      builder: (context, child) {
+        return ScrollConfiguration(
+          behavior: const NoGlowBehavior(),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       debugShowCheckedModeBanner: false,
     );
   }
+}
+
+class NoGlowBehavior extends ScrollBehavior {
+  const NoGlowBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+      BuildContext context, Widget child, ScrollableDetails details) {
+    return child;
+  }
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
 }
 
 class RaidHome extends StatefulWidget {
@@ -58,7 +83,7 @@ class _RaidHomeState extends State<RaidHome> {
   void initState() {
     super.initState();
     _loadData(initial: true);
-    _poller = Timer.periodic(const Duration(minutes: 2), (_) => _loadData());
+    _poller = Timer.periodic(const Duration(seconds: 45), (_) => _loadData());
   }
 
   @override
