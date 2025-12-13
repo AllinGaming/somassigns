@@ -73,6 +73,7 @@ class _RaidHomeState extends State<RaidHome> {
   final SpreadsheetService _service = SpreadsheetService();
   RaidData? _data;
   bool _initialLoading = true;
+  // ignore: unused_field
   bool _refreshing = false;
   BossPlan? selected;
   Map<String, List<String>> karaNotes = const {};
@@ -260,6 +261,7 @@ class _RaidHomeState extends State<RaidHome> {
     );
   }
 
+  // ignore: unused_element
   Widget _summaryCard() {
     return Card(
       elevation: 3,
