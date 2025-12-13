@@ -1,0 +1,21 @@
+# Flutter & Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+coverage/
+pubspec.lock
+
+# Build outputs
+build/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Misc
+.pub-cache/
+*.orig

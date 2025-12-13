@@ -1,0 +1,9 @@
+{
+  "name": "Raid Assignments",
+  "short_name": "Raid Plan",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "description": "Raid assignments for Gnarlmoon, Anomalus, Chess, Sanv, Rupturan, Kruul, and Mephistroth."
+}
