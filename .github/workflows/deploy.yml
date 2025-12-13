@@ -31,7 +31,9 @@ jobs:
         run: flutter pub get
 
       - name: Build web release (HTML renderer)
-        run: flutter build web --web-renderer html --release --base-href "/somassigns/"
+        env:
+          FLUTTER_WEB_RENDERER: html
+        run: flutter build web --release --base-href "/somassigns/"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
