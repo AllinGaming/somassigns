@@ -52,6 +52,7 @@ class _RaidHomeState extends State<RaidHome> {
   Map<String, List<String>> karaNotes = const {};
   String searchQuery = '';
   Timer? _poller;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -155,6 +156,7 @@ class _RaidHomeState extends State<RaidHome> {
   @override
   void dispose() {
     _poller?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -180,6 +182,7 @@ class _RaidHomeState extends State<RaidHome> {
               setState(() {
                 selected = plan;
                 searchQuery = '';
+                _searchController.clear();
               });
             }
           },
@@ -196,6 +199,7 @@ class _RaidHomeState extends State<RaidHome> {
             children: [
               Expanded(
                 child: TextField(
+                  controller: _searchController,
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.search),
                     hintText: 'Search your name for assignments',
@@ -211,7 +215,10 @@ class _RaidHomeState extends State<RaidHome> {
               if (searchQuery.isNotEmpty) ...[
                 const SizedBox(width: 8),
                 IconButton(
-                  onPressed: () => setState(() => searchQuery = ''),
+                  onPressed: () => setState(() {
+                    searchQuery = '';
+                    _searchController.clear();
+                  }),
                   icon: const Icon(Icons.clear, color: Colors.white),
                   style: IconButton.styleFrom(
                     backgroundColor: const Color(0xFF3A3F4F),
