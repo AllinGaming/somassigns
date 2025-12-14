@@ -59,7 +59,9 @@ class SpreadsheetService {
     final notes = await _fetchNotes();
     final bosses = [
       _buildGnarlmoon(sheets['Gnarlmoon'] ?? const [], notes),
+      _buildLeyWatcher(sheets['Ley-Watcher Incantagos'] ?? const [], notes),
       _buildAnomalus(sheets['Anomalus'] ?? const [], notes),
+      _buildEcho(sheets['Echo of Medivh'] ?? const [], notes),
       _buildChess(sheets['Chess'] ?? const [], notes),
       _buildSanv(sheets['Sanv'] ?? const [], notes),
       _buildRupturan(sheets['Rupturan'] ?? const [], notes),
@@ -72,7 +74,9 @@ class SpreadsheetService {
   Future<Map<String, List<List<String>>>> _fetchSheets() async {
     const names = [
       'Gnarlmoon',
+      'Ley-Watcher Incantagos',
       'Anomalus',
+      'Echo of Medivh',
       'Chess',
       'Sanv',
       'Rupturan',
@@ -146,7 +150,9 @@ class SpreadsheetService {
       // Also bucket notes under boss keys when title contains them (for per-boss display).
       for (final bossKey in [
         'gnarlmoon',
+        'ley-watcher incantagos',
         'anomalus',
+        'echo of medivh',
         'chess',
         'sanv',
         'rupturan',
@@ -177,6 +183,20 @@ int _findRow(List<List<String>> rows, String text) {
 
 List<String> _notesFor(Map<String, List<String>> notes, String key) =>
     notes[key] ?? const [];
+
+List<String> _notesForContains(
+    Map<String, List<String>> notes, String keyPart, String extraPart) {
+  final lowerKey = keyPart.toLowerCase();
+  final lowerExtra = extraPart.toLowerCase();
+  final collected = <String>[];
+  notes.forEach((k, v) {
+    final lk = k.toLowerCase();
+    if (lk.contains(lowerKey) && lk.contains(lowerExtra)) {
+      collected.addAll(v);
+    }
+  });
+  return collected;
+}
 
 BossPlan _buildGnarlmoon(List<List<String>> rows, Map<String, List<String>> notes) {
   final left = <String>[];
@@ -218,17 +238,17 @@ BossPlan _buildGnarlmoon(List<List<String>> rows, Map<String, List<String>> note
     tables: [
       TableSection(
         title: 'Left Side',
-        headers: ['#', 'Player'],
+        headers: ['Player'],
         rows: [
-          for (var i = 0; i < left.length; i++) ['${i + 1}', left[i]],
+          for (var i = 0; i < left.length; i++) [left[i]],
         ],
         caption: 'Pulled live from Gnarlmoon sheet (left column).',
       ),
       TableSection(
         title: 'Right Side',
-        headers: ['#', 'Player'],
+        headers: ['Player'],
         rows: [
-          for (var i = 0; i < right.length; i++) ['${i + 1}', right[i]],
+          for (var i = 0; i < right.length; i++) [right[i]],
         ],
         caption: 'Pulled live from Gnarlmoon sheet (right column).',
       ),
@@ -261,11 +281,15 @@ BossPlan _buildGnarlmoon(List<List<String>> rows, Map<String, List<String>> note
 }
 
 BossPlan _buildAnomalus(List<List<String>> rows, Map<String, List<String>> notes) {
+  // Healers: rows after header (row 2) until the "Tanks" marker (row 6)
   final healerRows = <List<String>>[];
-  final healerStart = _findRow(rows, 'Group 1 & 2');
-  if (healerStart != -1) {
-    for (var i = healerStart + 1; i < rows.length; i++) {
-      if (rows[i].where((c) => c.trim().isNotEmpty).isEmpty) break;
+  final headerRow = _findRow(rows, 'Group 1 & 2');
+  if (headerRow != -1) {
+    for (var i = headerRow + 1; i < rows.length; i++) {
+      final isTanksMarker =
+          rows[i].isNotEmpty && rows[i][0].toLowerCase() == 'tanks';
+      if (isTanksMarker) break;
+      if (rows[i].where((c) => c.trim().isNotEmpty).isEmpty) continue;
       final filled = List<String>.filled(5, '');
       for (var j = 0; j < 5 && j < rows[i].length; j++) {
         filled[j] = rows[i][j];
@@ -274,16 +298,17 @@ BossPlan _buildAnomalus(List<List<String>> rows, Map<String, List<String>> notes
     }
   }
 
-  final tankRow = _findRow(rows, 'Tanks');
+  // Tank order: rows following the "Tanks" marker until a blank line.
   final tankAssignments = <List<String>>[];
-  if (tankRow != -1) {
-    // Tanks listed under Group 1 & 2 column; positions/orders to the right in Group 3 & 4 column.
-    for (var i = tankRow + 1; i < rows.length && i <= tankRow + 4; i++) {
-      final tank = _cell(rows, i, 0);
-      final position = _cell(rows, i, 1);
-      if (tank.isNotEmpty && tank.toLowerCase() != 'tanks') {
-        tankAssignments.add([tank, position]);
-      }
+  final tankHeaderRow =
+      rows.indexWhere((r) => r.isNotEmpty && r[0].trim().toLowerCase() == 'tanks');
+  if (tankHeaderRow != -1) {
+    for (var r = tankHeaderRow + 1; r < rows.length; r++) {
+      final tank = _cell(rows, r, 0);
+      final order = _cell(rows, r, 1);
+      if (tank.trim().isEmpty && order.trim().isEmpty) break;
+      if (tank.trim().isEmpty && order.trim().isEmpty) continue;
+      tankAssignments.add([tank, order]);
     }
   }
 
@@ -310,6 +335,35 @@ BossPlan _buildAnomalus(List<List<String>> rows, Map<String, List<String>> notes
         title: 'Healer Layout',
         headers: ['Group 1 & 2', 'Group 3 & 4', 'Group 5 & 6', 'Group 7 & 8', 'Tanks'],
         rows: healerRows,
+      ),
+      if (tankAssignments.isNotEmpty)
+        TableSection(
+          title: 'Tank Order',
+          headers: ['Tank', 'Order'],
+          rows: tankAssignments,
+          caption: 'Taken from the Tanks block (Nubbie, Sniej, Tijana).',
+        ),
+      if (tankHealers.isNotEmpty)
+        TableSection(
+          title: 'Tank Healers',
+          headers: ['Healer', 'Tanks'],
+          rows: [
+            for (var i = 0; i < tankHealers.length; i++)
+              [
+                tankHealers[i],
+                tankAssignments.isNotEmpty
+                    ? tankAssignments.map((t) => t[0]).join(', ')
+                    : 'Nubbie, Sniej, Tijana'
+              ],
+          ],
+          caption: 'Healers assigned to tanks (from column next to Group 7 & 8).',
+        ),
+      TableSection(
+        title: 'Magic',
+        headers: ['Call', 'Targets'],
+        rows: const [
+          ['Dampen Magic', 'Non-tanks'],
+        ],
       ),
     ],
     notes: [
@@ -365,18 +419,28 @@ BossPlan _buildChess(List<List<String>> rows, Map<String, List<String>> notes) {
       }
     }
 
-    final data = collected.entries
-        .map((entry) {
-          final roleMap = entry.value;
-          final tank = (roleMap['Tank'] ?? []).join(', ');
-          final healer = (roleMap['Healer'] ?? []).join(', ');
-          final extra = roleMap.entries
-              .where((e) => e.key != 'Tank' && e.key != 'Healer')
-              .expand((e) => e.value)
-              .join(', ');
-          return [entry.key, tank, healer, extra];
-        })
-        .toList();
+    final data = <List<String>>[];
+    collected.forEach((piece, roleMap) {
+      final tanks = roleMap['Tank'] ?? [];
+      final healers = roleMap['Healer'] ?? [];
+      final extras = roleMap.entries
+          .where((e) => e.key != 'Tank' && e.key != 'Healer')
+          .expand((e) => e.value)
+          .toList();
+
+      final maxRows = [tanks.length, healers.length, extras.length].fold<int>(
+          0, (prev, e) => e > prev ? e : prev);
+      final rows = maxRows == 0 ? 1 : maxRows;
+
+      for (var i = 0; i < rows; i++) {
+        data.add([
+          piece,
+          i < tanks.length ? tanks[i] : '',
+          i < healers.length ? healers[i] : '',
+          i < extras.length ? extras[i] : '',
+        ]);
+      }
+    });
 
     return [
       TableSection(
@@ -436,22 +500,16 @@ BossPlan _buildSanv(List<List<String>> rows, Map<String, List<String>> notes) {
         headers: ['Spot', 'Tank', 'Healer'],
         rows: [
           ['Boss', _cell(rows, 3, 1), _cell(rows, 3, 2)],
-          ['Staircase', _cell(rows, 3, 4), _cell(rows, 3, 5)],
+          ['Boss backups', _cell(rows, 4, 1), _cell(rows, 4, 2)],
         ],
       ),
       TableSection(
-        title: 'Backup Coverage',
+        title: 'Staircase',
         headers: ['Spot', 'Tank', 'Healer'],
         rows: [
-          ['Boss backups', _cell(rows, 4, 1), _cell(rows, 4, 2)],
+          ['Staircase', _cell(rows, 3, 4), _cell(rows, 3, 5)],
           ['Stair backups', _cell(rows, 4, 4), _cell(rows, 4, 5)],
-        ],
-      ),
-      TableSection(
-        title: 'Stair Portal Team',
-        headers: ['Tank', 'Healer'],
-        rows: [
-          [_cell(rows, 5, 4).isNotEmpty ? _cell(rows, 5, 4) : 'Pithagoras', _cell(rows, 5, 5).isNotEmpty ? _cell(rows, 5, 5) : _cell(rows, 5, 5)],
+          ['Stair portal team', _cell(rows, 5, 4), _cell(rows, 5, 5)],
         ],
       ),
       TableSection(
@@ -562,6 +620,9 @@ BossPlan _buildRupturan(List<List<String>> rows, Map<String, List<String>> notes
       ),
       if (_notesFor(notes, 'rupturan').isNotEmpty)
         NoteBlock(title: 'Kara notes', items: _notesFor(notes, 'rupturan')),
+      if (_notesForContains(notes, 'rupturan', 'prep').isNotEmpty)
+        NoteBlock(
+            title: 'Preparation', items: _notesForContains(notes, 'rupturan', 'prep')),
     ],
     imageAsset: 'assets/rupturan.png',
     extraImages: const ['assets/ruptp1.png', 'assets/ruptp2.png'],
@@ -596,6 +657,13 @@ BossPlan _buildKruul(List<List<String>> rows, Map<String, List<String>> notes) {
     title: 'Group Buff Assignments',
     headers: ['Call', 'Group 1', 'Group 2', 'Group 3', 'Group 4'],
     rows: [
+      [
+        'Reminder',
+        'Dampen Magic (Ranged)',
+        'Dampen Magic (Ranged)',
+        'Amplify Magic (Melee)',
+        'Amplify Magic (Melee)',
+      ],
       [
         'Dampen Magic (Ranged)',
         _cell(rows, 12, 11),
@@ -651,13 +719,20 @@ BossPlan _buildKruul(List<List<String>> rows, Map<String, List<String>> notes) {
         rows: [
           ['Healer', _cell(rows, 4, 0)],
           ['Fire Res Tank', _cell(rows, 5, 1)],
-          ['Decurse note', _cell(rows, 5, 4)],
         ],
       ),
       taunt,
       magicGrid,
     ],
     notes: [
+      NoteBlock(
+        title: 'Decurse',
+        items: [
+          _cell(rows, 5, 4).isNotEmpty
+              ? _cell(rows, 5, 4)
+              : 'Mages/Druids - Skip Paladins on Decursive/Rinse',
+        ],
+      ),
       if (_notesFor(notes, 'kruul').isNotEmpty)
         NoteBlock(title: 'Kara notes', items: _notesFor(notes, 'kruul')),
     ],
@@ -667,26 +742,51 @@ BossPlan _buildKruul(List<List<String>> rows, Map<String, List<String>> notes) {
 }
 
 BossPlan _buildMeph(List<List<String>> rows, Map<String, List<String>> notes) {
-  final shardBackLeft = <String>[];
-  final shardBackRight = <String>[];
-  for (var r = 21; r <= 24 && r < rows.length; r++) {
-    final left = _cell(rows, r, 3);
-    final left2 = _cell(rows, r, 4);
-    final right = _cell(rows, r, 7);
-    final right2 = _cell(rows, r, 8);
-    if (left.isNotEmpty) shardBackLeft.add(left);
-    if (left2.isNotEmpty) shardBackLeft.add(left2);
-    if (right.isNotEmpty) shardBackRight.add(right);
-    if (right2.isNotEmpty) shardBackRight.add(right2);
+  final mainRows = <List<String>>[];
+  for (var r = 3; r <= 5 && r < rows.length; r++) {
+    mainRows.add([
+      _cell(rows, r, 0),
+      _cell(rows, r, 1),
+      _cell(rows, r, 2),
+      _cell(rows, r, 3),
+      _cell(rows, r, 4),
+      _cell(rows, r, 5),
+      _cell(rows, r, 6),
+    ]);
   }
+
+  final abilities = <List<String>>[];
+  for (var r = 7; r <= 10 && r < rows.length; r++) {
+    abilities.add([
+      _cell(rows, r, 0),
+      _cell(rows, r, 2),
+      _cell(rows, r, 4),
+      _cell(rows, r, 6),
+      _cell(rows, r, 8),
+      _cell(rows, r, 9),
+    ]);
+  }
+
+  // Front shard melee (row 14, columns 4 and 7)
+  final front1 = _cell(rows, 14, 4);
+  final front2 = _cell(rows, 14, 7);
+
+  // Back shard teams (rows 21-24, columns 3/4 and 7/8)
   final shardRows = <List<String>>[];
-  final maxLen = shardBackLeft.length > shardBackRight.length
-      ? shardBackLeft.length
-      : shardBackRight.length;
-  for (var i = 0; i < maxLen; i++) {
+  for (var r = 21; r <= 24 && r < rows.length; r++) {
+    final leftMain = _cell(rows, r, 3);
+    final leftSecond = _cell(rows, r, 4);
+    final rightMain = _cell(rows, r, 7);
+    final rightSecond = _cell(rows, r, 8);
+    if (leftMain.isEmpty &&
+        leftSecond.isEmpty &&
+        rightMain.isEmpty &&
+        rightSecond.isEmpty) {
+      continue;
+    }
     shardRows.add([
-      i < shardBackLeft.length ? shardBackLeft[i] : '',
-      i < shardBackRight.length ? shardBackRight[i] : '',
+      [leftMain, leftSecond].where((e) => e.isNotEmpty).join(', '),
+      [rightMain, rightSecond].where((e) => e.isNotEmpty).join(', '),
     ]);
   }
 
@@ -700,43 +800,34 @@ BossPlan _buildMeph(List<List<String>> rows, Map<String, List<String>> notes) {
     tables: [
       TableSection(
         title: 'Main Assignments',
-        headers: ['Enemy', 'Tank', 'Healer', 'Backup/Notes'],
-        rows: [
-          ['Boss', _cell(rows, 3, 0), _cell(rows, 3, 1),
-              'Extra: ${_cell(rows, 4, 1)}, ${_cell(rows, 5, 1)}'],
-          ['Doomguards', _cell(rows, 3, 2), _cell(rows, 3, 3),
-              'Healer: ${_cell(rows, 4, 3)}'],
-          ['Nightmare Crawlers', _cell(rows, 3, 4), _cell(rows, 3, 5), ''],
+        headers: [
+          'Boss Tank',
+          'Boss Healer',
+          'Doomguard Tank',
+          'Doomguard Healer',
+          'Crawler Tank',
+          'Crawler Healer',
+          'Crawler DPS'
         ],
+        rows: mainRows,
       ),
       TableSection(
         title: 'Ability Priorities',
-        headers: ['Mechanic', 'Who handles it'],
-        rows: [
-          ['Fear Ward', _cell(rows, 6, 0)],
-          ['Sleep Paralysis', _cell(rows, 6, 2)],
-          ['Vampiric Aura', _cell(rows, 6, 4)],
-          ['Carrion Swarm', _cell(rows, 6, 6)],
-          ['Melee DPS Priority', _cell(rows, 6, 8)],
-          ['Ranged DPS Priority', _cell(rows, 6, 9)],
+        headers: [
+          'Fear ward',
+          'Sleep Paralysis',
+          'Vampiric Aura',
+          'Carrion Swarm',
+          'Melee DPS Prio',
+          'Ranged DPS Prio'
         ],
+        rows: abilities,
       ),
       TableSection(
-        title: 'Doom of Outland',
-        headers: ['Group', 'Instruction'],
+        title: 'Shard Teams (Front)',
+        headers: ['Front 1', 'Front 2'],
         rows: [
-          ['All', _cell(rows, 12, 0)],
-          ['Shard team', '${_cell(rows, 14, 4)} / ${_cell(rows, 14, 7)}'],
-          ['Melee', _cell(rows, 16, 4)],
-          ['Rotation', _cell(rows, 17, 6)],
-        ],
-      ),
-      TableSection(
-        title: 'Dread of Outland',
-        headers: ['Group', 'Instruction'],
-        rows: [
-          ['All', _cell(rows, 19, 0)],
-          ['Ranged', _cell(rows, 19, 4)],
+          [front1, front2],
         ],
       ),
       TableSection(
@@ -752,8 +843,197 @@ BossPlan _buildMeph(List<List<String>> rows, Map<String, List<String>> notes) {
     notes: [
       if (_notesFor(notes, 'mephistroth').isNotEmpty)
         NoteBlock(title: 'Kara notes', items: _notesFor(notes, 'mephistroth')),
+      if (_notesForContains(notes, 'kruul', 'recovery').isNotEmpty)
+        NoteBlock(
+            title: 'Mephistroth prep',
+            items: _notesForContains(notes, 'kruul', 'recovery')),
     ],
     imageAsset: 'assets/mephistroth.png',
     extraImages: const [],
   );
+}
+
+BossPlan _buildLeyWatcher(List<List<String>> rows, Map<String, List<String>> notes) {
+  final bossRows = <List<String>>[];
+  final trapRows = <List<String>>[];
+  String _filterLabel(String s) => s.toLowerCase();
+  List<String> _filterNotes(List<String> list, List<String> disallow) {
+    return list
+        .where((n) =>
+            !disallow.any((d) => _filterLabel(n).contains(d.toLowerCase())))
+        .toSet()
+        .toList();
+  }
+  // rows of interest: header row 2 is labels, 3..5 contain data
+  for (var r = 3; r <= 5 && r < rows.length; r++) {
+    final tank = _cell(rows, r, 1);
+    final healer = _cell(rows, r, 2);
+    final backLeft = _cell(rows, r, 4);
+    final backRight = _cell(rows, r, 5);
+    if (tank.isNotEmpty || healer.isNotEmpty) {
+      bossRows.add([tank, healer]);
+    }
+    if (backLeft.isNotEmpty || backRight.isNotEmpty) {
+      trapRows.add([backLeft, backRight]);
+    }
+  }
+
+  return BossPlan(
+    name: 'Ley-Watcher Incantagos',
+    description: 'Boss tanks/healers plus hunter traps coverage.',
+    highlights: const [
+      'Tank/heal assignments and hunter trap positions',
+    ],
+    tables: [
+      TableSection(
+        title: 'Boss',
+        headers: ['Tank', 'Healer'],
+        rows: bossRows,
+      ),
+      if (trapRows.isNotEmpty)
+        TableSection(
+          title: 'Hunter Traps',
+          headers: ['Back left', 'Back right'],
+          rows: trapRows,
+        ),
+    ],
+    notes: [
+      if (_notesForContains(notes, 'ley-watcher incantagos', 'prep').isNotEmpty)
+        NoteBlock(
+            title: 'Preparation',
+            items: _notesForContains(notes, 'ley-watcher incantagos', 'prep')),
+      if (_notesForContains(notes, 'incantagos', 'recovery').isNotEmpty)
+        NoteBlock(
+            title: 'Recovery',
+            items: _notesForContains(notes, 'incantagos', 'recovery')),
+      if (_notesForContains(notes, 'incantagos', 'trash').isNotEmpty)
+        NoteBlock(
+            title: 'Trash', items: _notesForContains(notes, 'incantagos', 'trash')),
+    ],
+    imageAsset: 'assets/leywatcher.png',
+    extraImages: const [],
+  );
+}
+
+BossPlan _buildEcho(List<List<String>> rows, Map<String, List<String>> notes) {
+  final bossRows = <List<String>>[];
+  final kiterRows = <List<String>>[];
+  for (var r = 3; r <= 5 && r < rows.length; r++) {
+    final tank = _cell(rows, r, 1);
+    final healer = _cell(rows, r, 2);
+    final kiter = _cell(rows, r, 4);
+    if (tank.isNotEmpty || healer.isNotEmpty) {
+      bossRows.add([tank, healer]);
+    }
+    if (kiter.isNotEmpty) {
+      kiterRows.add([kiter]);
+    }
+  }
+
+  final cotRows = <List<String>>[];
+  if (rows.length > 7) {
+    final assigned = _cell(rows, 7, 0);
+    final kicker = _cell(rows, 7, 4);
+    if (assigned.isNotEmpty) cotRows.add([assigned]);
+    if (kicker.isNotEmpty) cotRows.add(['Kicker: $kicker']);
+  }
+
+  return BossPlan(
+    name: 'Echo of Medivh',
+    description: 'Boss tanks/healers and infernals kiters; CoT kicker duty.',
+    highlights: const [
+      'Infernal kiters listed with tanks/healers',
+      'CoT kicker assignment',
+    ],
+    tables: [
+      TableSection(
+        title: 'Boss',
+        headers: ['Tank', 'Healer'],
+        rows: bossRows,
+      ),
+      if (kiterRows.isNotEmpty)
+        TableSection(
+          title: 'Infernals Kiters',
+          headers: ['Kiter'],
+          rows: kiterRows,
+        ),
+      if (cotRows.isNotEmpty)
+        TableSection(
+          title: 'CoT / Kicker',
+          headers: ['Assignment'],
+          rows: cotRows,
+        ),
+    ],
+    notes: [
+      if (_notesFor(notes, 'echo of medivh').isNotEmpty)
+        NoteBlock(title: 'Kara notes', items: _notesFor(notes, 'echo of medivh')),
+      if (_notesForContains(notes, 'echo of medivh', 'prep').isNotEmpty)
+        NoteBlock(
+            title: 'Preparation', items: _notesForContains(notes, 'echo of medivh', 'prep')),
+    ],
+    imageAsset: 'assets/echo.png',
+    extraImages: const [],
+  );
+}
+
+// ignore: unused_element
+BossPlan _buildGeneric(String name, List<List<String>> rows, Map<String, List<String>> notes) {
+  // Trim empty rows
+  final cleaned = rows.where((r) => r.any((c) => c.trim().isNotEmpty)).toList();
+  // Drop leading title row if it just contains the tab name
+  if (cleaned.isNotEmpty &&
+      cleaned.first.where((c) => c.trim().isNotEmpty).length == 1 &&
+      cleaned.first.first.toLowerCase() == name.toLowerCase()) {
+    cleaned.removeAt(0);
+  }
+
+  List<String> headers = [];
+  List<List<String>> body = [];
+  if (cleaned.isNotEmpty) {
+    headers = List<String>.from(cleaned.first);
+    // If the first header cell is empty, drop empty leading columns
+    while (headers.isNotEmpty && headers.first.trim().isEmpty) {
+      headers.removeAt(0);
+      for (var i = 0; i < cleaned.length; i++) {
+        if (cleaned[i].isNotEmpty) cleaned[i].removeAt(0);
+      }
+    }
+    final maxCols = headers.length;
+    body = cleaned.skip(1).map((r) {
+      final row = List<String>.filled(maxCols, '');
+      for (var i = 0; i < r.length && i < maxCols; i++) {
+        row[i] = r[i];
+      }
+      return row;
+    }).toList();
+  }
+
+  return BossPlan(
+    name: name,
+    description: 'Assignments pulled from sheet tab $name.',
+    highlights: [
+      'Live data from sheet',
+      'Tab: $name',
+    ],
+    tables: [
+      TableSection(
+        title: name,
+        headers: headers,
+        rows: body,
+      )
+    ],
+    notes: [
+      if (_notesFor(notes, name.toLowerCase()).isNotEmpty)
+        NoteBlock(title: 'Kara notes', items: _notesFor(notes, name.toLowerCase())),
+    ],
+    imageAsset: _assetForGeneric(name),
+    extraImages: const [],
+  );
+}
+
+String _assetForGeneric(String name) {
+  final lower = name.toLowerCase();
+  if (lower.contains('ley-watcher')) return 'assets/leywatcher.png';
+  if (lower.contains('echo')) return 'assets/echo.png';
+  return 'assets/anomalus.png';
 }
