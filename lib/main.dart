@@ -288,96 +288,104 @@ class _RaidHomeState extends State<RaidHome> {
       builder: (context) {
         String tempClass = _charClass;
         String tempRole = _charRole;
-        return AlertDialog(
-          backgroundColor: const Color(0xFF161A23),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: const Text('Save Character',
-              style: TextStyle(color: Colors.white)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _charNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  filled: true,
-                  fillColor: Color(0xFF1E2330),
-                  labelStyle: TextStyle(color: Colors.white70),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10))),
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF161A23),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              title: const Text('Save Character',
+                  style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _charNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Name',
+                      filled: true,
+                      fillColor: Color(0xFF1E2330),
+                      labelStyle: TextStyle(color: Colors.white70),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(10))),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: tempClass,
+                    dropdownColor: const Color(0xFF161A23),
+                    decoration: const InputDecoration(
+                      labelText: 'Class',
+                      filled: true,
+                      fillColor: Color(0xFF1E2330),
+                      labelStyle: TextStyle(color: Colors.white70),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(10))),
+                    ),
+                    items: _classes
+                        .map((c) => DropdownMenuItem(
+                              value: c,
+                              child: Text(c, style: const TextStyle(color: Colors.white)),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setStateDialog(() => tempClass = val);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: tempRole,
+                    dropdownColor: const Color(0xFF161A23),
+                    decoration: const InputDecoration(
+                      labelText: 'Role',
+                      filled: true,
+                      fillColor: Color(0xFF1E2330),
+                      labelStyle: TextStyle(color: Colors.white70),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(10))),
+                    ),
+                    items: _roles
+                        .map((r) => DropdownMenuItem(
+                              value: r,
+                              child: Text(r, style: const TextStyle(color: Colors.white)),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setStateDialog(() => tempRole = val);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
                 ),
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: tempClass,
-                dropdownColor: const Color(0xFF161A23),
-                decoration: const InputDecoration(
-                  labelText: 'Class',
-                  filled: true,
-                  fillColor: Color(0xFF1E2330),
-                  labelStyle: TextStyle(color: Colors.white70),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10))),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _charClass = tempClass;
+                      _charRole = tempRole;
+                    });
+                    _saveCharacter(editing: editing, index: index ?? _currentCharIndex)
+                        .then((idx) {
+                      _setCurrentCharacter(idx);
+                      Navigator.of(context).pop();
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5C7CFA),
+                  ),
+                  child:
+                      const Text('Save', style: TextStyle(color: Colors.white)),
                 ),
-                items: _classes
-                    .map((c) => DropdownMenuItem(
-                          value: c,
-                          child: Text(c, style: const TextStyle(color: Colors.white)),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) tempClass = val;
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: tempRole,
-                dropdownColor: const Color(0xFF161A23),
-                decoration: const InputDecoration(
-                  labelText: 'Role',
-                  filled: true,
-                  fillColor: Color(0xFF1E2330),
-                  labelStyle: TextStyle(color: Colors.white70),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10))),
-                ),
-                items: _roles
-                    .map((r) => DropdownMenuItem(
-                          value: r,
-                          child: Text(r, style: const TextStyle(color: Colors.white)),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) tempRole = val;
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _charClass = tempClass;
-                  _charRole = tempRole;
-                });
-                _saveCharacter(editing: editing, index: index ?? _currentCharIndex)
-                    .then((idx) {
-                  _setCurrentCharacter(idx);
-                  Navigator.of(context).pop();
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5C7CFA),
-              ),
-              child:
-                  const Text('Save', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
