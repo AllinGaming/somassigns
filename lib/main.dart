@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'data.dart';
 import 'kara_notes_page.dart';
 import 'my_assigns_page.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const RaidApp());
 }
 
@@ -465,6 +468,7 @@ class _RaidHomeState extends State<RaidHome> {
     if (bosses.isEmpty) return const SizedBox.shrink();
     final hasChar = _charNameController.text.trim().isNotEmpty;
     final initials = hasChar ? _charNameController.text.trim()[0].toUpperCase() : '';
+    final isCompactHeader = MediaQuery.of(context).size.width < 720 || !isWide;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -503,20 +507,22 @@ class _RaidHomeState extends State<RaidHome> {
             ],
           ),
         ] else ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                tooltip: 'Search assignments',
-                icon: const Icon(Icons.search, color: Colors.white),
-                style: IconButton.styleFrom(backgroundColor: const Color(0xFF3A3F4F)),
-                onPressed: () {
-                  setState(() {
-                    _showSearch = true;
-                  });
-                },
-              ),
-              Row(
+          Builder(builder: (context) {
+            final searchButton = IconButton(
+              tooltip: 'Search assignments',
+              icon: const Icon(Icons.search, color: Colors.white),
+              style: IconButton.styleFrom(backgroundColor: const Color(0xFF3A3F4F)),
+              onPressed: () {
+                setState(() {
+                  _showSearch = true;
+                });
+              },
+            );
+
+            final navControls = ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     tooltip: 'Previous encounter',
@@ -580,82 +586,128 @@ class _RaidHomeState extends State<RaidHome> {
                   ),
                 ],
               ),
-              hasChar
-                  ? Tooltip(
-                      message: 'Edit / switch character',
-                      child: PopupMenuButton<String>(
-                        tooltip: '',
-                        offset: const Offset(0, 40),
-                        color: const Color(0xFF1A1F2B),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        onSelected: (val) {
-                          if (val == 'edit') {
-                            _showCharacterDialog(editing: true, index: _currentCharIndex);
-                          } else if (val == 'switch') {
-                            _showCharacterPicker();
-                          }
-                        },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                            value: 'switch',
-                            child: Text('Change character',
-                                style: TextStyle(color: Colors.white)),
-                          ),
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Text('Edit character',
-                                style: TextStyle(color: Colors.white)),
+            );
+
+            final charControl = hasChar
+                ? Tooltip(
+                    message: 'Edit / switch character',
+                    child: PopupMenuButton<String>(
+                      tooltip: '',
+                      offset: const Offset(0, 40),
+                      color: const Color(0xFF1A1F2B),
+                      shape:
+                          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      onSelected: (val) {
+                        if (val == 'edit') {
+                          _showCharacterDialog(editing: true, index: _currentCharIndex);
+                        } else if (val == 'switch') {
+                          _showCharacterPicker();
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: 'switch',
+                          child: Text('Change character',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                        PopupMenuItem(
+                          value: 'edit',
+                          child:
+                              Text('Edit character', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: const Color(0xFF5C7CFA),
+                        child: Text(initials,
+                            style: const TextStyle(
+                                color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  )
+                : IconButton(
+                    tooltip: 'Add character',
+                    icon: const Icon(Icons.person_add, color: Colors.white),
+                    style: IconButton.styleFrom(backgroundColor: const Color(0xFF3A3F4F)),
+                    onPressed: () => _showCharacterDialog(editing: false),
+                  );
+
+            final assignmentsRow = hasChar
+                ? Align(
+                    alignment:
+                        isCompactHeader ? Alignment.centerLeft : Alignment.center,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const Text('Currently showing all assignments',
+                              style: TextStyle(color: Colors.white70, fontSize: 14)),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              final name = _charNameController.text.trim();
+                              if (name.isEmpty) return;
+                              Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => MyAssignsPage(
+                                        bosses: _data?.bosses ?? [],
+                                        name: name,
+                                        charClass: _charClass,
+                                        role: _charRole,
+                                      )));
+                            },
+                            icon: const Icon(Icons.assignment_turned_in),
+                            label: const Text('My Assignments'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFB23A48),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              textStyle: const TextStyle(
+                                  fontWeight: FontWeight.w700, letterSpacing: 0.2),
+                            ),
                           ),
                         ],
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: const Color(0xFF5C7CFA),
-                          child: Text(initials,
-                              style: const TextStyle(
-                                  color: Colors.white, fontWeight: FontWeight.bold)),
-                        ),
                       ),
-                    )
-                  : IconButton(
-                      tooltip: 'Add character',
-                      icon: const Icon(Icons.person_add, color: Colors.white),
-                      style: IconButton.styleFrom(backgroundColor: const Color(0xFF3A3F4F)),
-                      onPressed: () => _showCharacterDialog(editing: false),
-                      ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Centered My assignments row
-          if (hasChar)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Currently showing all assignments',
-                    style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: () {
-                    final name = _charNameController.text.trim();
-                    if (name.isEmpty) return;
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => MyAssignsPage(
-                              bosses: _data?.bosses ?? [],
-                              name: name,
-                              charClass: _charClass,
-                              role: _charRole,
-                            )));
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFB23A48),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    textStyle:
-                        const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
+                  )
+                : const SizedBox.shrink();
+
+            if (isCompactHeader) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      searchButton,
+                      navControls,
+                      charControl,
+                    ],
                   ),
-                  child: const Text('Go to your assignments'),
-                )
+                  assignmentsRow,
+                ],
+              );
+            }
+
+            return Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    searchButton,
+                    navControls,
+                    charControl,
+                  ],
+                ),
+                const SizedBox(height: 12),
+                assignmentsRow,
               ],
-            ),
+            );
+          }),
         ],
       ],
     );

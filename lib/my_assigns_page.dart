@@ -362,6 +362,14 @@ class _MyAssignsPageState extends State<MyAssignsPage> {
 
             String? detail =
                 _detailFor(boss.name, section.title, row, lowerName);
+            if (boss.name.toLowerCase() == 'rupturan') {
+              final tank = _rupturanTankForHealer(section, row);
+              if (tank != null && tank.isNotEmpty) {
+                detail = (detail == null || detail.isEmpty)
+                    ? 'Tank: $tank'
+                    : '$detail • Tank: $tank';
+              }
+            }
             if (isAnomalus && anomalusOrder.containsKey(lowerName)) {
               final ord = anomalusOrder[lowerName]!;
               // Surface order inside the row if we can, otherwise append to detail.
@@ -470,6 +478,33 @@ class _MyAssignsPageState extends State<MyAssignsPage> {
       }
     }
     return collected;
+  }
+
+  String? _rupturanTankForHealer(TableSection section, List<String> matchedRow) {
+    // Only relevant for Rupturan fragment tables where rows are Role/Player.
+    if (matchedRow.isEmpty ||
+        section.headers.length != 2 ||
+        !section.headers[0].toLowerCase().contains('role')) {
+      return null;
+    }
+    final roleLower = matchedRow[0].toLowerCase();
+    if (!roleLower.contains('healer')) return null;
+
+    String? findTank(String contains) {
+      for (final r in section.rows) {
+        if (r.isEmpty) continue;
+        final role = r[0].toLowerCase();
+        if (role.contains(contains) && r.length > 1 && r[1].trim().isNotEmpty) {
+          return r[1].trim();
+        }
+      }
+      return null;
+    }
+
+    if (roleLower.contains('living fragment')) {
+      return findTank('living fragment tank') ?? findTank('tank');
+    }
+    return findTank('tank');
   }
 }
 

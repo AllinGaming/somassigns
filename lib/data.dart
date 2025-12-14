@@ -755,6 +755,10 @@ BossPlan _buildMeph(List<List<String>> rows, Map<String, List<String>> notes) {
     ]);
   }
 
+  final mainBoss = mainRows.map((r) => [r[0], r[1]]).toList();
+  final mainDoomguard = mainRows.map((r) => [r[2], r[3]]).toList();
+  final mainCrawler = mainRows.map((r) => [r[4], r[5], r[6]]).toList();
+
   final abilities = <List<String>>[];
   for (var r = 7; r <= 10 && r < rows.length; r++) {
     abilities.add([
@@ -766,6 +770,9 @@ BossPlan _buildMeph(List<List<String>> rows, Map<String, List<String>> notes) {
       _cell(rows, r, 9),
     ]);
   }
+  final abilitiesLeft = abilities.map((r) => [r[0], r[1]]).toList();
+  final abilitiesMid = abilities.map((r) => [r[2], r[3]]).toList();
+  final abilitiesRight = abilities.map((r) => [r[4], r[5]]).toList();
 
   // Front shard melee (row 14, columns 4 and 7)
   final front1 = _cell(rows, 14, 4);
@@ -799,29 +806,34 @@ BossPlan _buildMeph(List<List<String>> rows, Map<String, List<String>> notes) {
     ],
     tables: [
       TableSection(
-        title: 'Main Assignments',
-        headers: [
-          'Boss Tank',
-          'Boss Healer',
-          'Doomguard Tank',
-          'Doomguard Healer',
-          'Crawler Tank',
-          'Crawler Healer',
-          'Crawler DPS'
-        ],
-        rows: mainRows,
+        title: 'Main Assignments (Boss)',
+        headers: ['Boss Tank', 'Boss Healer'],
+        rows: mainBoss,
       ),
       TableSection(
-        title: 'Ability Priorities',
-        headers: [
-          'Fear ward',
-          'Sleep Paralysis',
-          'Vampiric Aura',
-          'Carrion Swarm',
-          'Melee DPS Prio',
-          'Ranged DPS Prio'
-        ],
-        rows: abilities,
+        title: 'Main Assignments (Doomguard)',
+        headers: ['Doomguard Tank', 'Doomguard Healer'],
+        rows: mainDoomguard,
+      ),
+      TableSection(
+        title: 'Main Assignments (Crawlers)',
+        headers: ['Crawler Tank', 'Crawler Healer', 'Crawler DPS'],
+        rows: mainCrawler,
+      ),
+      TableSection(
+        title: 'Ability Priorities (Fear / Sleep)',
+        headers: ['Fear ward', 'Sleep Paralysis'],
+        rows: abilitiesLeft,
+      ),
+      TableSection(
+        title: 'Ability Priorities (Aura / Swarm)',
+        headers: ['Vampiric Aura', 'Carrion Swarm'],
+        rows: abilitiesMid,
+      ),
+      TableSection(
+        title: 'Ability Priorities (DPS)',
+        headers: ['Melee DPS Prio', 'Ranged DPS Prio'],
+        rows: abilitiesRight,
       ),
       TableSection(
         title: 'Shard Teams (Front)',
