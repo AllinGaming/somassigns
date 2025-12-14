@@ -125,11 +125,20 @@ class _RaidHomeState extends State<RaidHome> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 170,
-        title: _header(MediaQuery.of(context).size.width > 1100, _data?.bosses ?? []),
+        toolbarHeight: 90,
+      title: _header(MediaQuery.of(context).size.width > 1100, _data?.bosses ?? []),
         centerTitle: false,
         backgroundColor: Colors.transparent,
       ),
+      floatingActionButton: _charNameController.text.trim().isNotEmpty &&
+              (_data?.bosses.isNotEmpty ?? false)
+          ? FloatingActionButton.extended(
+              backgroundColor: const Color(0xFFB23A48),
+              icon: const Icon(Icons.assignment_turned_in),
+              label: const Text('My Assignments'),
+              onPressed: _openMyAssignments,
+            )
+          : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth > 1100;
@@ -468,7 +477,7 @@ class _RaidHomeState extends State<RaidHome> {
     if (bosses.isEmpty) return const SizedBox.shrink();
     final hasChar = _charNameController.text.trim().isNotEmpty;
     final initials = hasChar ? _charNameController.text.trim()[0].toUpperCase() : '';
-    final isCompactHeader = MediaQuery.of(context).size.width < 720 || !isWide;
+    const isCompactHeader = false; // unified layout; horizontal scroll handles overflow
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -519,90 +528,76 @@ class _RaidHomeState extends State<RaidHome> {
               },
             );
 
-            final dropDownWidth = isCompactHeader ? 170.0 : 240.0;
-            final navControls = LayoutBuilder(builder: (context, box) {
-              final maxWidth = box.maxWidth.isFinite ? box.maxWidth : 420.0;
-              const iconSizeEstimate = 44.0; // IconButton hit box
-              final calculated =
-                  maxWidth - (iconSizeEstimate * 2) - (8 * 2); // icons + spacing
-              final appliedWidth = calculated.clamp(150.0, dropDownWidth);
-
-              return ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Previous encounter',
-                      icon: const Icon(Icons.chevron_left, color: Colors.white),
-                      style:
-                          IconButton.styleFrom(backgroundColor: const Color(0xFF3A3F4F)),
-                      onPressed: () {
-                        if (selected == null || bosses.isEmpty) return;
-                        final current = bosses.indexOf(selected!);
-                        _selectBoss(bosses, current - 1);
-                        setState(() {
-                          searchQuery = '';
-                          _searchController.clear();
-                        });
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF161A23),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF2B3242)),
-                      ),
-                      child: SizedBox(
-                        width: appliedWidth,
-                        child: DropdownButton<BossPlan>(
-                          isExpanded: true,
-                          value: selected,
-                          dropdownColor: const Color(0xFF161A23),
-                          underline: const SizedBox(),
-                          iconEnabledColor: Colors.white,
-                          style: const TextStyle(color: Colors.white, fontSize: 16),
-                          onChanged: (plan) {
-                            if (plan != null) {
-                              setState(() {
-                                selected = plan;
-                                searchQuery = '';
-                                _searchController.clear();
-                              });
-                            }
-                          },
-                          items: bosses
-                              .map((b) => DropdownMenuItem(
-                                    value: b,
-                                    child:
-                                        Text(b.name, overflow: TextOverflow.ellipsis),
-                                  ))
-                              .toList(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: 'Next encounter',
-                      icon: const Icon(Icons.chevron_right, color: Colors.white),
-                      style:
-                          IconButton.styleFrom(backgroundColor: const Color(0xFF3A3F4F)),
-                      onPressed: () {
-                        if (selected == null || bosses.isEmpty) return;
-                        final current = bosses.indexOf(selected!);
-                        _selectBoss(bosses, current + 1);
-                        setState(() {
-                          searchQuery = '';
-                          _searchController.clear();
-                        });
-                      },
-                    ),
-                  ],
+            const dropDownWidth = 130.0;
+            final navControls = Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Previous encounter',
+                  icon: const Icon(Icons.chevron_left, color: Colors.white),
+                  style: IconButton.styleFrom(backgroundColor: const Color(0xFF3A3F4F)),
+                  onPressed: () {
+                    if (selected == null || bosses.isEmpty) return;
+                    final current = bosses.indexOf(selected!);
+                    _selectBoss(bosses, current - 1);
+                    setState(() {
+                      searchQuery = '';
+                      _searchController.clear();
+                    });
+                  },
                 ),
-              );
-            });
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161A23),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF2B3242)),
+                  ),
+                  child: SizedBox(
+                    width: dropDownWidth,
+                    child: DropdownButton<BossPlan>(
+                      isExpanded: true,
+                      value: selected,
+                      dropdownColor: const Color(0xFF161A23),
+                      underline: const SizedBox(),
+                      iconEnabledColor: Colors.white,
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      onChanged: (plan) {
+                        if (plan != null) {
+                          setState(() {
+                            selected = plan;
+                            searchQuery = '';
+                            _searchController.clear();
+                          });
+                        }
+                      },
+                      items: bosses
+                          .map((b) => DropdownMenuItem(
+                                value: b,
+                                child: Text(b.name, overflow: TextOverflow.ellipsis),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  tooltip: 'Next encounter',
+                  icon: const Icon(Icons.chevron_right, color: Colors.white),
+                  style: IconButton.styleFrom(backgroundColor: const Color(0xFF3A3F4F)),
+                  onPressed: () {
+                    if (selected == null || bosses.isEmpty) return;
+                    final current = bosses.indexOf(selected!);
+                    _selectBoss(bosses, current + 1);
+                    setState(() {
+                      searchQuery = '';
+                      _searchController.clear();
+                    });
+                  },
+                ),
+              ],
+            );
 
             final charControl = hasChar
                 ? Tooltip(
@@ -648,76 +643,34 @@ class _RaidHomeState extends State<RaidHome> {
                     onPressed: () => _showCharacterDialog(editing: false),
                   );
 
-            final assignmentsRow = hasChar
-                ? Align(
-                    alignment:
-                        isCompactHeader ? Alignment.centerLeft : Alignment.center,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          final name = _charNameController.text.trim();
-                          if (name.isEmpty) return;
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => MyAssignsPage(
-                                    bosses: _data?.bosses ?? [],
-                                    name: name,
-                                    charClass: _charClass,
-                                    role: _charRole,
-                                  )));
-                        },
-                        icon: const Icon(Icons.assignment_turned_in),
-                        label: const Text('My Assignments'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFB23A48),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          textStyle: const TextStyle(
-                              fontWeight: FontWeight.w700, letterSpacing: 0.2),
-                        ),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink();
-
-            if (isCompactHeader) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      searchButton,
-                      navControls,
-                      charControl,
-                    ],
-                  ),
-                  assignmentsRow,
-                ],
-              );
-            }
-
-            return Column(
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    searchButton,
-                    navControls,
-                    charControl,
-                  ],
+                searchButton,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Center(child: navControls),
                 ),
-                const SizedBox(height: 12),
-                assignmentsRow,
+                const SizedBox(width: 12),
+                charControl,
               ],
             );
           }),
         ],
       ],
     );
+  }
+
+  void _openMyAssignments() {
+    final name = _charNameController.text.trim();
+    if (name.isEmpty) return;
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => MyAssignsPage(
+              bosses: _data?.bosses ?? [],
+              name: name,
+              charClass: _charClass,
+              role: _charRole,
+            )));
   }
 Widget _summaryCard() {
     return Card(
