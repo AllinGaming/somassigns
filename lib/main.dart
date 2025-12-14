@@ -125,7 +125,7 @@ class _RaidHomeState extends State<RaidHome> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 140,
+        toolbarHeight: 150,
         title: _header(MediaQuery.of(context).size.width > 1100, _data?.bosses ?? []),
         centerTitle: false,
         backgroundColor: Colors.transparent,
@@ -519,8 +519,9 @@ class _RaidHomeState extends State<RaidHome> {
               },
             );
 
+            final dropDownWidth = isCompactHeader ? 170.0 : 240.0;
             final navControls = ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 380),
+              constraints: const BoxConstraints(maxWidth: 340),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -546,27 +547,32 @@ class _RaidHomeState extends State<RaidHome> {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFF2B3242)),
                     ),
-                    child: DropdownButton<BossPlan>(
-                      value: selected,
-                      dropdownColor: const Color(0xFF161A23),
-                      underline: const SizedBox(),
-                      iconEnabledColor: Colors.white,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      onChanged: (plan) {
-                        if (plan != null) {
-                          setState(() {
-                            selected = plan;
-                            searchQuery = '';
-                            _searchController.clear();
-                          });
-                        }
-                      },
-                      items: bosses
-                          .map((b) => DropdownMenuItem(
-                                value: b,
-                                child: Text(b.name),
-                              ))
-                          .toList(),
+                    child: SizedBox(
+                      width: dropDownWidth,
+                      child: DropdownButton<BossPlan>(
+                        isExpanded: true,
+                        value: selected,
+                        dropdownColor: const Color(0xFF161A23),
+                        underline: const SizedBox(),
+                        iconEnabledColor: Colors.white,
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        onChanged: (plan) {
+                          if (plan != null) {
+                            setState(() {
+                              selected = plan;
+                              searchQuery = '';
+                              _searchController.clear();
+                            });
+                          }
+                        },
+                        items: bosses
+                            .map((b) => DropdownMenuItem(
+                                  value: b,
+                                  child:
+                                      Text(b.name, overflow: TextOverflow.ellipsis),
+                                ))
+                            .toList(),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -643,7 +649,7 @@ class _RaidHomeState extends State<RaidHome> {
                         runSpacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Text('Currently showing all assignments',
+                          const Text('Showing all assignments',
                               style: TextStyle(color: Colors.white70, fontSize: 14)),
                           ElevatedButton.icon(
                             onPressed: () {

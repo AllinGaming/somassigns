@@ -891,7 +891,7 @@ BossPlan _buildLeyWatcher(List<List<String>> rows, Map<String, List<String>> not
   }
 
   return BossPlan(
-    name: 'Ley-Watcher Incantagos',
+    name: 'Incantagos',
     description: 'Boss tanks/healers plus hunter traps coverage.',
     highlights: const [
       'Tank/heal assignments and hunter trap positions',
