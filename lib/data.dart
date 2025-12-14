@@ -878,10 +878,10 @@ BossPlan _buildLeyWatcher(List<List<String>> rows, Map<String, List<String>> not
   }
   // rows of interest: header row 2 is labels, 3..5 contain data
   for (var r = 3; r <= 5 && r < rows.length; r++) {
-    final tank = _cell(rows, r, 1);
-    final healer = _cell(rows, r, 2);
-    final backLeft = _cell(rows, r, 4);
-    final backRight = _cell(rows, r, 5);
+    final tank = _cell(rows, r, 0);
+    final healer = _cell(rows, r, 1);
+    final backLeft = _cell(rows, r, 3);
+    final backRight = _cell(rows, r, 4);
     if (tank.isNotEmpty || healer.isNotEmpty) {
       bossRows.add([tank, healer]);
     }
@@ -930,52 +930,87 @@ BossPlan _buildLeyWatcher(List<List<String>> rows, Map<String, List<String>> not
 BossPlan _buildEcho(List<List<String>> rows, Map<String, List<String>> notes) {
   final bossRows = <List<String>>[];
   final kiterRows = <List<String>>[];
-  for (var r = 3; r <= 5 && r < rows.length; r++) {
-    final tank = _cell(rows, r, 1);
-    final healer = _cell(rows, r, 2);
-    final kiter = _cell(rows, r, 4);
-    if (tank.isNotEmpty || healer.isNotEmpty) {
-      bossRows.add([tank, healer]);
+  final cotRows = <List<String>>[];
+  final kickerRows = <List<String>>[];
+
+  for (var r = 3; r < rows.length; r++) {
+    final tank = _cell(rows, r, 0);
+    final healer = _cell(rows, r, 1);
+    final kiter = _cell(rows, r, 3);
+    final tankLower = tank.toLowerCase();
+    final kiterLower = kiter.toLowerCase();
+
+    final isCot = tankLower.contains('cot') || tankLower.contains('xiomora');
+    final isKicker =
+        kiterLower.contains('shadowbolt') || kiterLower.contains('bootybaker');
+
+    final hasBossData = tank.isNotEmpty || healer.isNotEmpty;
+    final hasKiter = kiter.isNotEmpty;
+
+    if (hasBossData) {
+      if (isCot) {
+        cotRows.add([tank]);
+      } else {
+        bossRows.add([tank, healer]);
+      }
     }
-    if (kiter.isNotEmpty) {
-      kiterRows.add([kiter]);
+
+    if (hasKiter) {
+      if (isKicker) {
+        kickerRows.add([kiter]);
+      } else {
+        kiterRows.add([kiter]);
+      }
+    }
+
+    if (!hasBossData && !hasKiter) {
+      // stop once we hit a fully empty row after data begins
+      if (r > 4) break;
     }
   }
 
-  final cotRows = <List<String>>[];
-  if (rows.length > 7) {
-    final assigned = _cell(rows, 7, 0);
-    final kicker = _cell(rows, 7, 4);
-    if (assigned.isNotEmpty) cotRows.add([assigned]);
-    if (kicker.isNotEmpty) cotRows.add(['Kicker: $kicker']);
+  final tables = <TableSection>[
+    TableSection(
+      title: 'Boss',
+      headers: ['Tank', 'Healer'],
+      rows: bossRows,
+    ),
+  ];
+
+  if (kiterRows.isNotEmpty) {
+    tables.add(TableSection(
+      title: 'Infernals Kiters',
+      headers: ['Kiter'],
+      rows: kiterRows,
+    ));
+  }
+
+  if (cotRows.isNotEmpty) {
+    tables.add(TableSection(
+      title: 'CoT / Xiomora',
+      headers: ['Player'],
+      rows: cotRows.where((r) => r.first.toLowerCase() != 'cot').toList(),
+    ));
+  }
+
+  if (kickerRows.isNotEmpty) {
+    tables.add(TableSection(
+      title: 'Shadowbolt Kickers',
+      headers: ['Player'],
+      rows: kickerRows
+          .where((r) => !r.first.toLowerCase().contains('shadowbolt kicker'))
+          .toList(),
+    ));
   }
 
   return BossPlan(
     name: 'Echo of Medivh',
-    description: 'Boss tanks/healers and infernals kiters; CoT kicker duty.',
+    description: 'Boss tanks/healers, infernal kiters, and special roles.',
     highlights: const [
-      'Infernal kiters listed with tanks/healers',
-      'CoT kicker assignment',
+      'Infernal kiters and boss teams',
+      'Separate callouts for CoT/Xiomora and Shadowbolt kickers',
     ],
-    tables: [
-      TableSection(
-        title: 'Boss',
-        headers: ['Tank', 'Healer'],
-        rows: bossRows,
-      ),
-      if (kiterRows.isNotEmpty)
-        TableSection(
-          title: 'Infernals Kiters',
-          headers: ['Kiter'],
-          rows: kiterRows,
-        ),
-      if (cotRows.isNotEmpty)
-        TableSection(
-          title: 'CoT / Kicker',
-          headers: ['Assignment'],
-          rows: cotRows,
-        ),
-    ],
+    tables: tables,
     notes: [
       if (_notesFor(notes, 'echo of medivh').isNotEmpty)
         NoteBlock(title: 'Kara notes', items: _notesFor(notes, 'echo of medivh')),
