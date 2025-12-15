@@ -14,5 +14,5 @@ Flutter web app that pulls raid assignments live from the Google Sheet and prese
 ## Using the UI
 - **Header controls:** Encounter dropdown with prev/next arrows; toggle search; character avatar/add; “Go to your assignments” link.
 - **Search:** Hidden until toggled. Highlights matches; Anomalus shows full table; Gnarlmoon shows side context.
-- **Personal assignments:** Save a character (name, class, role). “Go to your assignments” shows your tables/notes, including prep/recovery and role-relevant entries.
+- **Personal assignments:** Save a character (name, class, role). “My assignments” shows your tables/notes, including prep/recovery and role-relevant entries.
 - **Images:** Boss portrait per tab; Rupturan phase images tap-to-zoom; Meph shard back/front tables.
